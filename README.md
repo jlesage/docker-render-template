@@ -23,3 +23,24 @@ Where:
   * `TEMPLATE` is the path to the Jinja2 template.
   * `TEMPLATE_DATA_SOURCE` is the path to the data source file (JSON or XML).
     More than one data source file can be specified.
+
+## Usage
+
+```
+usage: render_template.py [-h] [--force-list FORCE_LIST]
+                          TEMPLATE TEMPLATE_DATA [TEMPLATE_DATA ...]
+
+Helper to render a Jinja2 template using a JSON or XML file as data source.
+
+positional arguments:
+  TEMPLATE              Path to the Jinja2 template file.
+  TEMPLATE_DATA         Path to JSON or XML file containing the data to be
+                        filled in the template.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --force-list FORCE_LIST
+                        Comma-separated list of XML elements to be considered
+                        as a list, even if there is only a single child of a
+                        given level of hierarchy.
+```
