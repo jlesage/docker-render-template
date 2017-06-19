@@ -16,7 +16,7 @@ outputted.
 Use the provided helper script:
 
 ```
-curl -s https://mywebsite.com/myscript.txt | sh -s TEMPLATE TEMPLATE_DATA_SOURCE [TEMPLATE_DATA_SOURCE...]
+curl -s https://raw.githubusercontent.com/jlesage/docker-render-template/master/render_template.sh | sh -s TEMPLATE TEMPLATE_DATA_SOURCE [TEMPLATE_DATA_SOURCE...]
 ```
 
 Where:
