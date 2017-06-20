@@ -10,10 +10,10 @@ FROM alpine:3.6
 # Install dependencies.
 RUN \
     apk --no-cache add \
-        python \
-        py-jinja2 \
-        py-pip && \
-    pip install xmltodict
+        python3 \
+        py3-jinja2 \
+        && \
+    pip3 install xmltodict requests
 
 # Add files.
 COPY render_template.py /usr/local/bin/

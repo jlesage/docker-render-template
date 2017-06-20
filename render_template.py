@@ -1,62 +1,84 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
+import sys
 import os
 import argparse
 import json
 import collections
 import xmltodict
-from jinja2 import Environment, FileSystemLoader
+import requests
+from jinja2 import Environment, FileSystemLoader, BaseLoader
 
 def dict_merge(dct, merge_dct):
-  """ Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
-  updating only top-level keys, dict_merge recurses down into dicts nested
-  to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
-  ``dct``.
+  """
+  Recursive dict merge. Inspired by :meth:``dict.update()``: instead of updating
+  only top-level keys, dict_merge recurses down into dicts nested to an
+  arbitrary depth, updating keys.  Lists are also merged together.
+  The ``merge_dct`` is merged into ``dct``.
   :param dct: dict onto which the merge is executed
   :param merge_dct: dct merged into dct
   :return: None
   """
-  for k, v in merge_dct.iteritems():
+  for k, v in merge_dct.items():
     if (k in dct and isinstance(dct[k], dict)
           and isinstance(merge_dct[k], collections.Mapping)):
       dict_merge(dct[k], merge_dct[k])
     elif (k in dct and isinstance(dct[k], list)
           and isinstance(merge_dct[k], list)):
+      # Merge list.
       dct[k] = dct[k] + merge_dct[k]
     else:
       dct[k] = merge_dct[k]
 
 def is_valid_file(arg):
   """
-  'Type' for argparse - checks that file exists.
+  Argparse 'type' callback.
+  Validate that the argument is an URL or the path to an existing file.
   """
-  if not os.path.isfile(arg):
-    raise argparse.ArgumentTypeError("File not found: {0}".format(arg))
-  return arg
+  if arg.startswith('http://') or arg.startswith('https://'):
+    return { 'type': 'url', 'target': arg }
 
-def render_template(template, template_data, force_list=None):
+  if os.path.isfile(arg):
+    return { 'type': 'file', 'target': os.path.abspath(arg) }
+
+  raise argparse.ArgumentTypeError("File not found: {0}".format(arg))
+
+def render_template(template, template_data, force_list=None, debug=False):
+
+  if template['type'] == 'url':
+    try:
+      f = requests.get(template['target'])
+      f.raise_for_status()
+    except requests.exceptions.RequestException as e:
+      print("Failed to download template: %s" % e)
+      sys.exit(1)
+    template = f.text
+  else:
+    with open(template['target'], 'r') as f:
+      template = f.read()
 
   # Create the jinja2 environment.
-  j2_env = Environment(loader=FileSystemLoader('/'),
+  j2_env = Environment(loader=BaseLoader(),
                        trim_blocks=True, lstrip_blocks=True)
 
   # Dump the received data.
-  # print(json.dumps(template_data, indent=4))
+  if debug:
+    print(json.dumps(template_data, indent=4), file=sys.stderr)
 
   # Render the template.
-  result = j2_env.get_template(template).render(template_data).encode('utf-8')
-  prev_result = ''
-
   # Loop until we get stable results.  The result we get from a template
   # rendering may still contain Jinja2 instructions.
-  while result != prev_result:
+  prev_result = template
+  while True:
+    result = j2_env.from_string(prev_result).render(template_data)
+    if result == prev_result:
+      break
     prev_result = result
-    result = Environment().from_string(prev_result).render(template_data).encode('utf-8')
 
-  print result
+  print(result)
 
 if __name__ == '__main__':
-  # Handle arguments.
+  # Define arguments parser.
   parser = argparse.ArgumentParser(description='Helper to render a Jinja2 '
                                                'template using a JSON or XML '
                                                'file as data source.')
@@ -72,21 +94,39 @@ if __name__ == '__main__':
                       help='Comma-separated list of XML elements to be '
                            'considered as a list, even if there is only a '
                            'single child of a given level of hierarchy.')
+  parser.add_argument('--debug',
+                      action='store_true',
+                      help='Log debugging information to stderr.')
+
+  # Parse arguments.
   args=parser.parse_args()
 
+  # Create list of XML elements that need to be considered as a list.
   force_list=None
   if args.force_list:
     force_list = args.force_list.split(',')
 
-  # Open and load the JSON template(s) data file.
+  # Open and load template source data file(s).
   data = {}
   for tmpl in args.TEMPLATE_DATA:
-    _, extension = os.path.splitext(tmpl)
-    with open(tmpl) as data_file:
-      if extension == '.xml':
-        dict_merge(data, xmltodict.parse(data_file.read(), force_list=force_list))
-      elif extension == '.json':
-        dict_merge(data, json.load(data_file))
+    if tmpl['type'] == 'url':
+      try:
+        f = requests.get(tmpl['target'])
+        f.raise_for_status()
+      except requests.exceptions.RequestException as e:
+        print("Failed to download template data source: %s" % e)
+        sys.exit(1)
+      if f.headers['content-type'] == 'application/json':
+          dict_merge(data, json.loads(f.text))
+      elif f.headers['content-type'] == 'application/xml':
+        dict_merge(data, xmltodict.parse(f.text, force_list=force_list))
+    else:
+      _, extension = os.path.splitext(tmpl['target'])
+      with open(tmpl['target']) as data_file:
+        if extension == '.xml':
+          dict_merge(data, xmltodict.parse(data_file.read(), force_list=force_list))
+        elif extension == '.json':
+          dict_merge(data, json.load(data_file))
 
   # Render the template.
-  render_template(os.path.abspath(args.TEMPLATE), data, force_list)
+  render_template(args.TEMPLATE, data, force_list, args.debug)
