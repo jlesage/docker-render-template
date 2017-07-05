@@ -59,6 +59,7 @@ def render_template(template, template_data, force_list=None, debug=False):
 
   # Create the jinja2 environment.
   j2_env = Environment(loader=BaseLoader(),
+                       extensions=['jinja2.ext.loopcontrols'],
                        trim_blocks=True, lstrip_blocks=True)
 
   # Dump the received data.
