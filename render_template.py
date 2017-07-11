@@ -27,6 +27,10 @@ def dict_merge(dct, merge_dct):
           and isinstance(merge_dct[k], list)):
       # Merge list.
       dct[k] = dct[k] + merge_dct[k]
+    elif (k in dct and merge_dct[k] is None
+          and (isinstance(dct[k], dict) or isinstance(dct[k], list))):
+      # Do not overwrite dicts and lists with empty entry.
+      pass
     else:
       dct[k] = merge_dct[k]
 
