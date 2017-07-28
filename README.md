@@ -7,7 +7,7 @@ More than one data source file can be used.  They will be merged together.
 
 Once the rendering of a template is done, the result is used as the template for
 a another rendering pass.  As result, a template can generate Jinja2
-instructions, which will be resolved by the next rendering pass.  when no change
+instructions, which will be resolved by the next rendering pass.  When no change
 occurs between two passes, processing is stopped and the final result is
 outputted.
 
