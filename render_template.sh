@@ -5,7 +5,7 @@ DOCKER_CMD_ARGS=
 
 for ARG in "$@"; do
     if [ -f "$ARG" ]; then
-        FILE="$(realpath "$ARG")"
+        FILE="$(readlink -f "$ARG")"
         DOCKER_OPTS="$DOCKER_OPTS -v \"$FILE:$FILE:ro\""
         DOCKER_CMD_ARGS="$DOCKER_CMD_ARGS \"$FILE\""
     else
