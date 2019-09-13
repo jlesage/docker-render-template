@@ -47,7 +47,7 @@ def is_valid_file(arg):
 
   raise argparse.ArgumentTypeError("File not found: {0}".format(arg))
 
-def render_template(template, template_data, force_list=None, debug=False):
+def render_template(template, template_data, force_list=None, debug=False, max_passes=None):
 
   if template['type'] == 'url':
     try:
@@ -74,11 +74,15 @@ def render_template(template, template_data, force_list=None, debug=False):
   # Loop until we get stable results.  The result we get from a template
   # rendering may still contain Jinja2 instructions.
   prev_result = template
+  passes = 0
   while True:
     result = j2_env.from_string(prev_result).render(template_data)
     if result == prev_result:
       break
     prev_result = result
+    passes = passes + 1
+    if max_passes is not None and passes >= max_passes:
+      break
 
   print(result)
 
@@ -95,6 +99,9 @@ if __name__ == '__main__':
                       nargs='+',
                       help='Path to JSON or XML file containing the data to be '
                            'filled in the template.')
+  parser.add_argument('--max-num-passes',
+                      type=int,
+                      help='Maximum number of passes to perform.')
   parser.add_argument('--force-list',
                       help='Comma-separated list of XML elements to be '
                            'considered as a list, even if there is only a '
@@ -134,4 +141,4 @@ if __name__ == '__main__':
           dict_merge(data, json.load(data_file))
 
   # Render the template.
-  render_template(args.TEMPLATE, data, force_list, args.debug)
+  render_template(args.TEMPLATE, data, force_list, args.debug, args.max_num_passes)

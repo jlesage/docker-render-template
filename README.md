@@ -39,6 +39,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --max-num-passes MAX_NUM_PASSES
+                        Maximum number of passes to perform.
   --force-list FORCE_LIST
                         Comma-separated list of XML elements to be considered
                         as a list, even if there is only a single child of a
