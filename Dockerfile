@@ -5,7 +5,7 @@
 #
 
 # Pull base image.
-FROM alpine:3.6
+FROM alpine:3.10
 
 # Install dependencies.
 RUN \
